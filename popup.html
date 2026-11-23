@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media DL 設定</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      font-size: 13px;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-icon {
+      color: rgb(255, 147, 240);
+      display: flex;
+      font-size: 20px;
+    }
+    .header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1c1c1e;
+      letter-spacing: -0.02em;
+    }
+    .header .sub {
+      font-size: 11px;
+      color: #8e8e93;
+      margin-left: auto;
+      font-weight: 500;
+    }
+
+    .section {
+      padding: 16px;
+      background: #fff;
+      border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1c1c1e;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ===== トグル行 ===== */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+    }
+    .row-label {
+      font-size: 15px;
+      color: #1c1c1e;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+    .row-sub {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .track {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #e9e9ea;
+      border-radius: 11px;
+      transition: background-color .2s ease;
+    }
+    .switch .track::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 2px;
+      top: 2px;
+      background-color: #fff;
+      border-radius: 50%;
+      transition: transform .2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .switch input:checked + .track {
+      background-color: rgb(255, 147, 240);
+    }
+    .switch input:checked + .track::before {
+      transform: translateX(16px);
+    }
+
+    /* このサイトで無効行 */
+    .site-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #f2f2f7;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+    .site-host {
+      font-size: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+      color: #1c1c1e;
+      word-break: break-all;
+    }
+    .site-toggle-label {
+      font-size: 12px;
+      color: #8e8e93;
+      white-space: nowrap;
+    }
+
+    /* ===== 数値入力（画像判定サイズ） ===== */
+    .size-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    input[type="number"] {
+      width: 70px;
+      background: #f2f2f7;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 16px;
+      color: #1c1c1e;
+      outline: none;
+      font-family: 'SF Mono', Monaco, monospace;
+      text-align: right;
+      font-weight: 400;
+    }
+    input[type="number"]:focus {
+      background: #e8e8ed;
+    }
+    .unit {
+      font-size: 15px;
+      color: #8e8e93;
+      font-weight: 400;
+    }
+
+    /* ===== 保存先 ===== */
+    .info-value {
+      font-size: 13px;
+      color: #1c1c1e;
+      background: #f2f2f7;
+      border-radius: 10px;
+      padding: 10px 12px;
+      word-break: break-all;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    .info-value.empty {
+      color: #8e8e93;
+      font-style: italic;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .btn-clear {
+      margin-top: 10px;
+      background: #f2f2f7;
+      border: none;
+      color: rgb(255, 147, 240);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+    .btn-clear:hover {
+      background: #e8e8ed;
+    }
+    .btn-clear:active {
+      background: #d8d8dd;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #f2f2f7;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 16px;
+      color: #1c1c1e;
+      outline: none;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    input[type="text"]:focus {
+      background: #e8e8ed;
+    }
+    input[type="text"]::placeholder {
+      color: #8e8e93;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .btn-save {
+      margin-top: 8px;
+      background: rgb(255, 147, 240);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .btn-save:hover {
+      background: rgb(235, 127, 220);
+    }
+    .btn-save:active {
+      background: rgb(215, 107, 200);
+    }
+
+    .save-msg {
+      font-size: 13px;
+      color: #34c759;
+      margin-top: 6px;
+      min-height: 18px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ===== ボタン表示位置（2x2ピッカー） ===== */
+    .pos-picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+      height: 90px;
+      margin: 6px 0 4px;
+    }
+    .pos-cell {
+      position: relative;
+      background: #f2f2f7;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pos-cell:hover {
+      background: #e8e8ed;
+    }
+    .pos-cell input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+    .pos-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #c7c7cc;
+      transition: all 0.2s;
+    }
+    .pos-cell[data-pos="top-left"] .pos-dot { top: 8px; left: 8px; }
+    .pos-cell[data-pos="top-right"] .pos-dot { top: 8px; right: 8px; }
+    .pos-cell[data-pos="bottom-left"] .pos-dot { bottom: 8px; left: 8px; }
+    .pos-cell[data-pos="bottom-right"] .pos-dot { bottom: 8px; right: 8px; }
+    .pos-cell input:checked ~ .pos-dot {
+      background: rgb(255, 147, 240);
+      box-shadow: 0 0 12px rgba(255, 147, 240, 0.3);
+      transform: scale(1.1);
+    }
+
+    /* ===== セレクトボックス ===== */
+    select {
+      width: 100%;
+      background: #f2f2f7;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 15px;
+      color: #1c1c1e;
+      outline: none;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    select:focus {
+      background: #e8e8ed;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </div>
+    <h1>Media DL</h1>
+  </div>
+
+  <div class="section">
+    <div class="section-title">ボタン設置</div>
+
+    <div class="row">
+      <div class="row-label">Twitter</div>
+      <label class="switch">
+        <input type="checkbox" id="twitter-toggle" checked>
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="row">
+      <div class="row-label">一般サイト</div>
+      <label class="switch">
+        <input type="checkbox" id="generic-toggle" checked>
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top: 12px;">
+      <div class="row-label" id="this-site-label">このサイトで表示する</div>
+      <label class="switch">
+        <input type="checkbox" id="this-site-toggle">
+        <span class="track"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">ダウンロード設定</div>
+
+    <div class="row">
+      <div>
+        <div class="row-label">クリック操作</div>
+        <div class="row-sub">
+          画像ホバークリック：単体保存（ 保存先を選択 ）<br>
+          アクションバー<br>
+          ┗通常クリック：ツイート画像すべて保存<br>
+          ┗ミドルクリック：投稿者を対象としたリプライ含む<br>　全画像を一括保存<br>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <div class="row-label">ホバー時ボタンの表示位置</div>
+      </div>
+    </div>
+    <div class="pos-picker">
+      <label class="pos-cell" data-pos="top-left">
+        <input type="radio" name="btnpos" value="top-left">
+        <span class="pos-dot"></span>
+      </label>
+      <label class="pos-cell" data-pos="top-right">
+        <input type="radio" name="btnpos" value="top-right">
+        <span class="pos-dot"></span>
+      </label>
+      <label class="pos-cell" data-pos="bottom-left">
+        <input type="radio" name="btnpos" value="bottom-left">
+        <span class="pos-dot"></span>
+      </label>
+      <label class="pos-cell" data-pos="bottom-right">
+        <input type="radio" name="btnpos" value="bottom-right" checked>
+        <span class="pos-dot"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top: 12px;">
+      <div>
+        <div class="row-label">スクリーンショット形式</div>
+        <div class="row-sub">文字ツイートの保存形式</div>
+      </div>
+    </div>
+    <select id="text-save-format">
+      <option value="screenshot">スクリーンショット (.png)</option>
+      <option value="text">テキストファイル (.txt)</option>
+    </select>
+
+    <div class="row" style="margin-top: 12px;">
+      <div>
+        <div class="row-label">スクリーンショットのクリック操作</div>
+        <div class="row-sub">
+          通常クリック：返信を含めないツイート単体保存<br>
+          ミドルクリック：投稿者の返信を含めて保存
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: 12px;">
+      <div>
+        <div class="row-label">最小画像サイズ</div>
+        <div class="row-sub">
+          アイコン誤検知防止 </div>
+      </div>
+      <div class="size-input-wrap">
+        <input type="number" id="min-image-size" value="150" min="10">
+        <span class="unit">px</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">保存先フォルダ</div>
+
+    <div class="info-value empty" id="folder-info">フォルダ未選択</div>
+    <button class="btn-clear" id="reset-folder">フォルダをリセット</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">テーマ設定</div>
+
+    <div class="row">
+      <div>
+        <div class="row-label">Dimモード</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="dim-toggle">
+        <span class="track"></span>
+      </label>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
