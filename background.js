@@ -132,14 +132,44 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // 依頼されたファイル名を強制するための待機表（URL → ファイル名）。
 //   data:/blob: URL では Chrome が名前を「ダウンロード」等にしてしまうことがあるため、
 //   onDeterminingFilename で明示的に指定し直す。
+//
+//   ★ onDeterminingFilename のリスナーは、ブラウザ内の「すべてのダウンロード」の
+//     ファイル名決定で呼ばれる。他の拡張機能（Video DownloadHelper 等）の
+//     ダウンロードまで巻き込んで「ファイルに名前を付けられない」エラーの
+//     原因になりうるため、常時登録はせず、自分のダウンロード待ちがある間だけ
+//     登録して、無くなったら即座に解除する。
 const pendingFilenames = new Map();
+let filenameListenerArmed = false;
 
-chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
-  if (item.byExtensionId !== chrome.runtime.id) return;
-  const wanted = pendingFilenames.get(item.url) || pendingFilenames.get(item.finalUrl);
-  if (!wanted) return;
-  suggest({ filename: wanted, conflictAction: 'uniquify' });
-});
+function onDeterminingFilenameHandler(item, suggest) {
+  try {
+    if (item.byExtensionId !== chrome.runtime.id) return;
+    const wanted = pendingFilenames.get(item.url) || pendingFilenames.get(item.finalUrl);
+    if (!wanted) return;
+    suggest({ filename: wanted, conflictAction: 'uniquify' });
+  } catch (e) {
+    // ファイル名決定を止めない（例外で他者のDLまで壊さない）
+    log('onDeterminingFilenameエラー:', e && e.message);
+  } finally {
+    disarmFilenameListenerIfIdle();
+  }
+}
+
+function armFilenameListener() {
+  if (filenameListenerArmed) return;
+  try {
+    chrome.downloads.onDeterminingFilename.addListener(onDeterminingFilenameHandler);
+    filenameListenerArmed = true;
+  } catch (e) { /* 登録済み等は無視 */ }
+}
+
+function disarmFilenameListenerIfIdle() {
+  if (!filenameListenerArmed || pendingFilenames.size > 0) return;
+  try {
+    chrome.downloads.onDeterminingFilename.removeListener(onDeterminingFilenameHandler);
+    filenameListenerArmed = false;
+  } catch (e) { /* 解除済み等は無視 */ }
+}
 
 async function handleDownload({ url, filename }) {
   if (typeof url !== 'string' || !url) {
@@ -159,7 +189,8 @@ async function handleDownload({ url, filename }) {
   }
 
   pendingFilenames.set(url, dlFilename);
-  setTimeout(() => pendingFilenames.delete(url), 60000);
+  armFilenameListener();
+  setTimeout(() => { pendingFilenames.delete(url); disarmFilenameListenerIfIdle(); }, 60000);
 
   return new Promise((resolve, reject) => {
     chrome.downloads.download(
@@ -169,6 +200,7 @@ async function handleDownload({ url, filename }) {
           // filename が不正（古い相対パスが無効になった等）→ リセットして再試行
           chrome.storage.local.remove(['lastRelDir']);
           pendingFilenames.set(url, filename);
+          armFilenameListener();
           chrome.downloads.download(
             { url, filename, saveAs: true, conflictAction: 'uniquify' },
             (retryId) => {
